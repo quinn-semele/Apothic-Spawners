@@ -10,6 +10,7 @@ import com.mojang.serialization.Codec;
 import dev.shadowsoffire.apothic_spawners.ApothicSpawners;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStat;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStats;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -60,7 +61,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
         CompoundTag stats = new CompoundTag();
         this.customStats.forEach((stat, value) -> {
             try {
-                Tag encoded = (Tag) ((Codec) stat.getValueCodec()).encodeStart(NbtOps.INSTANCE, value).get().left().get();
+                Tag encoded = Util.getOrThrow(((Codec<Object>) stat.getValueCodec()).encodeStart(NbtOps.INSTANCE, value), RuntimeException::new);
                 stats.put(stat.getId().toString(), encoded);
             }
             catch (Exception ex) {
@@ -79,7 +80,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
             if (stat != null) {
                 Tag value = stats.get(key);
                 try {
-                    Object realValue = stat.getValueCodec().decode(NbtOps.INSTANCE, value).get().left().get().getFirst();
+                    Object realValue = Util.getOrThrow(stat.getValueCodec().decode(NbtOps.INSTANCE, value), RuntimeException::new).getFirst();
                     this.customStats.put(stat, realValue);
                 }
                 catch (Exception ex) {
@@ -87,22 +88,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
                 }
             }
         }
-        tryLoad(SpawnerStats.IGNORE_PLAYERS, "ignore_players", tag);
-        tryLoad(SpawnerStats.IGNORE_CONDITIONS, "ignore_conditions", tag);
-        tryLoad(SpawnerStats.REDSTONE_CONTROL, "redstone_control", tag);
-        tryLoad(SpawnerStats.IGNORE_LIGHT, "ignore_light", tag);
-        tryLoad(SpawnerStats.NO_AI, "no_ai", tag);
-        tryLoad(SpawnerStats.SILENT, "silent", tag);
-        tryLoad(SpawnerStats.YOUTHFUL, "baby", tag);
         super.load(tag);
-    }
-
-    // Legacy compat
-    private void tryLoad(SpawnerStat<?> stat, String key, CompoundTag tag) {
-        if (tag.contains(key)) {
-            this.customStats.put(stat, tag.getBoolean(key));
-            tag.remove(key);
-        }
     }
 
     @Override

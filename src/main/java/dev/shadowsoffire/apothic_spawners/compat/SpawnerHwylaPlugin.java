@@ -23,8 +23,6 @@ import snownee.jade.api.config.IPluginConfig;
 @WailaPlugin
 public class SpawnerHwylaPlugin implements IWailaPlugin, IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
 
-    private static final ApothSpawnerTile tooltipTile = new ApothSpawnerTile(BlockPos.ZERO, Blocks.AIR.defaultBlockState());
-
     @Override
     public void register(IWailaCommonRegistration reg) {
         reg.registerBlockDataProvider(this, ApothSpawnerTile.class);
@@ -38,8 +36,9 @@ public class SpawnerHwylaPlugin implements IWailaPlugin, IBlockComponentProvider
     @Override
     public void appendTooltip(ITooltip tooltip, BlockAccessor accessor, IPluginConfig config) {
         if (Screen.hasControlDown()) {
-            tooltipTile.load(accessor.getServerData());
-            SpawnerStats.generateTooltip(tooltipTile, tooltip::add);
+            ApothSpawnerTile tile = new ApothSpawnerTile(BlockPos.ZERO, Blocks.AIR.defaultBlockState());
+            tile.load(accessor.getServerData());
+            SpawnerStats.generateTooltip(tile, tooltip::add);
         }
         else tooltip.add(Component.translatable("misc.apothic_spawners.ctrl_stats"));
     }
