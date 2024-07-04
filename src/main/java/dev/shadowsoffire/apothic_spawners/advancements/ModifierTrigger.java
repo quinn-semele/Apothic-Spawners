@@ -15,7 +15,6 @@ import net.minecraft.advancements.critereon.EntityPredicate;
 import net.minecraft.advancements.critereon.MinMaxBounds.Ints;
 import net.minecraft.advancements.critereon.SimpleCriterionTrigger;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.ExtraCodecs;
 
 public class ModifierTrigger extends SimpleCriterionTrigger<ModifierTrigger.TriggerInstance> {
 
@@ -35,20 +34,20 @@ public class ModifierTrigger extends SimpleCriterionTrigger<ModifierTrigger.Trig
 
         public static final Codec<TriggerInstance> CODEC = RecordCodecBuilder.create(inst -> inst
             .group(
-                ExtraCodecs.strictOptionalField(EntityPredicate.ADVANCEMENT_CODEC, "player").forGetter(TriggerInstance::player),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "min_delay", Ints.ANY).forGetter(TriggerInstance::minDelay),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "max_delay", Ints.ANY).forGetter(TriggerInstance::maxDelay),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "spawn_count", Ints.ANY).forGetter(TriggerInstance::spawnCount),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "max_nearby_entities", Ints.ANY).forGetter(TriggerInstance::nearbyEnts),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "req_player_range", Ints.ANY).forGetter(TriggerInstance::playerRange),
-                ExtraCodecs.strictOptionalField(Ints.CODEC, "spawn_range", Ints.ANY).forGetter(TriggerInstance::spawnRange),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "ignore_players").forGetter(TriggerInstance::ignorePlayers),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "ignore_conditions").forGetter(TriggerInstance::ignoreConditions),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "redstone_control").forGetter(TriggerInstance::redstone),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "ignore_light").forGetter(TriggerInstance::ignoreLight),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "no_ai").forGetter(TriggerInstance::noAI),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "silent").forGetter(TriggerInstance::silent),
-                ExtraCodecs.strictOptionalField(Codec.BOOL, "youthful").forGetter(TriggerInstance::youthful))
+                EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(TriggerInstance::player),
+                Ints.CODEC.optionalFieldOf("min_delay", Ints.ANY).forGetter(TriggerInstance::minDelay),
+                Ints.CODEC.optionalFieldOf("max_delay", Ints.ANY).forGetter(TriggerInstance::maxDelay),
+                Ints.CODEC.optionalFieldOf("spawn_count", Ints.ANY).forGetter(TriggerInstance::spawnCount),
+                Ints.CODEC.optionalFieldOf("max_nearby_entities", Ints.ANY).forGetter(TriggerInstance::nearbyEnts),
+                Ints.CODEC.optionalFieldOf("req_player_range", Ints.ANY).forGetter(TriggerInstance::playerRange),
+                Ints.CODEC.optionalFieldOf("spawn_range", Ints.ANY).forGetter(TriggerInstance::spawnRange),
+                Codec.BOOL.optionalFieldOf("ignore_players").forGetter(TriggerInstance::ignorePlayers),
+                Codec.BOOL.optionalFieldOf("ignore_conditions").forGetter(TriggerInstance::ignoreConditions),
+                Codec.BOOL.optionalFieldOf("redstone_control").forGetter(TriggerInstance::redstone),
+                Codec.BOOL.optionalFieldOf("ignore_light").forGetter(TriggerInstance::ignoreLight),
+                Codec.BOOL.optionalFieldOf("no_ai").forGetter(TriggerInstance::noAI),
+                Codec.BOOL.optionalFieldOf("silent").forGetter(TriggerInstance::silent),
+                Codec.BOOL.optionalFieldOf("youthful").forGetter(TriggerInstance::youthful))
             .apply(inst, TriggerInstance::new));
 
         public boolean test(ServerPlayer player, ApothSpawnerTile tile, SpawnerModifier modif) {

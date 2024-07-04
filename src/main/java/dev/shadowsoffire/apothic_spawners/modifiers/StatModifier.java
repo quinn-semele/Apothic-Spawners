@@ -1,17 +1,18 @@
 package dev.shadowsoffire.apothic_spawners.modifiers;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-import dev.shadowsoffire.apothic_spawners.ApothicSpawners;
 import dev.shadowsoffire.apothic_spawners.block.ApothSpawnerTile;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStat;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStats;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.ExtraCodecs;
 
 /**
  * Holds information needed to modify a spawner stat.
@@ -20,11 +21,13 @@ import net.minecraft.util.ExtraCodecs;
  */
 public record StatModifier<T>(SpawnerStat<T> stat, T value, Optional<T> min, Optional<T> max) {
 
+    private static final Map<SpawnerStat<?>, MapCodec<StatModifier<?>>> CODEC_CACHE = new HashMap<>();
+
+    public static final Codec<StatModifier<?>> CODEC = Codec.lazyInitialized(() -> SpawnerStats.REGISTRY.byNameCodec().dispatch(StatModifier::stat, StatModifier::modifierCodec));
+
     public StatModifier(SpawnerStat<T> stat, T value) {
         this(stat, value, Optional.empty(), Optional.empty());
     }
-
-    public static Codec<StatModifier<?>> CODEC = ExtraCodecs.lazyInitializedCodec(() -> SpawnerStats.REGISTRY.byNameCodec().dispatch(StatModifier::stat, StatModifier::modifierCodec));
 
     public boolean apply(ApothSpawnerTile tile) {
         return this.stat.applyModifier(tile, this.value, this.min, this.max);
@@ -32,7 +35,7 @@ public record StatModifier<T>(SpawnerStat<T> stat, T value, Optional<T> min, Opt
 
     public void write(FriendlyByteBuf buf) {
         buf.writeResourceLocation(this.stat.getId());
-        buf.writeNbt(modifierCodec(this.stat).encodeStart(NbtOps.INSTANCE, this).getOrThrow(false, ApothicSpawners.LOGGER::error));
+        buf.writeNbt(modifierCodec(this.stat).codec().encodeStart(NbtOps.INSTANCE, this).getOrThrow());
     }
 
     public String getFormattedValue() {
@@ -41,15 +44,20 @@ public record StatModifier<T>(SpawnerStat<T> stat, T value, Optional<T> min, Opt
 
     public static StatModifier<?> read(FriendlyByteBuf buf) {
         SpawnerStat<?> stat = SpawnerStats.REGISTRY.get(buf.readResourceLocation());
-        return modifierCodec(stat).decode(NbtOps.INSTANCE, buf.readNbt()).getOrThrow(false, ApothicSpawners.LOGGER::error).getFirst();
+        return modifierCodec(stat).codec().decode(NbtOps.INSTANCE, buf.readNbt()).getOrThrow().getFirst();
     }
 
-    public static <T> Codec<StatModifier<T>> modifierCodec(SpawnerStat<T> stat) {
-        return RecordCodecBuilder.create(inst -> inst
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T> MapCodec<StatModifier<T>> modifierCodec(SpawnerStat<T> stat) {
+        return (MapCodec) CODEC_CACHE.computeIfAbsent(stat, s -> (MapCodec) createModifierCodec(s));
+    }
+
+    private static <T> MapCodec<StatModifier<T>> createModifierCodec(SpawnerStat<T> stat) {
+        return RecordCodecBuilder.mapCodec(inst -> inst
             .group(
                 stat.getValueCodec().fieldOf("value").forGetter(StatModifier::value),
-                ExtraCodecs.strictOptionalField(stat.getValueCodec(), "min").forGetter(StatModifier::min),
-                ExtraCodecs.strictOptionalField(stat.getValueCodec(), "max").forGetter(StatModifier::max))
+                stat.getValueCodec().optionalFieldOf("min").forGetter(StatModifier::min),
+                stat.getValueCodec().optionalFieldOf("max").forGetter(StatModifier::max))
             .apply(inst, (value, min, max) -> new StatModifier<>(stat, value, min, max)));
     }
 

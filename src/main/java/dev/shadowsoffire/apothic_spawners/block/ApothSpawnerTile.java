@@ -5,20 +5,19 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 
 import dev.shadowsoffire.apothic_spawners.ApothicSpawners;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStat;
 import dev.shadowsoffire.apothic_spawners.stats.SpawnerStats;
-import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.Connection;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -41,9 +40,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.Event.Result;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck;
 
 public class ApothSpawnerTile extends SpawnerBlockEntity {
@@ -57,11 +54,11 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void saveAdditional(CompoundTag tag) {
+    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         CompoundTag stats = new CompoundTag();
         this.customStats.forEach((stat, value) -> {
             try {
-                Tag encoded = Util.getOrThrow(((Codec<Object>) stat.getValueCodec()).encodeStart(NbtOps.INSTANCE, value), RuntimeException::new);
+                Tag encoded = ((Codec<Object>) stat.getValueCodec()).encodeStart(NbtOps.INSTANCE, value).getOrThrow();
                 stats.put(stat.getId().toString(), encoded);
             }
             catch (Exception ex) {
@@ -69,18 +66,18 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
             }
         });
         tag.put("stats", stats);
-        super.saveAdditional(tag);
+        super.saveAdditional(tag, registries);
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         CompoundTag stats = tag.getCompound("stats");
         for (String key : stats.getAllKeys()) {
-            SpawnerStat<?> stat = SpawnerStats.REGISTRY.get(new ResourceLocation(key));
+            SpawnerStat<?> stat = SpawnerStats.REGISTRY.get(ResourceLocation.tryParse(key));
             if (stat != null) {
                 Tag value = stats.get(key);
                 try {
-                    Object realValue = Util.getOrThrow(stat.getValueCodec().decode(NbtOps.INSTANCE, value), RuntimeException::new).getFirst();
+                    Object realValue = stat.getValueCodec().decode(NbtOps.INSTANCE, value).getOrThrow().getFirst();
                     this.customStats.put(stat, realValue);
                 }
                 catch (Exception ex) {
@@ -88,12 +85,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
                 }
             }
         }
-        super.load(tag);
-    }
-
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        this.load(pkt.getTag());
+        super.loadAdditional(tag, registries);
     }
 
     public Map<SpawnerStat<?>, Object> getStatsMap() {
@@ -125,10 +117,9 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
             }
         }
 
-        @Nullable
         @Override
-        public BlockEntity getSpawnerBlockEntity() {
-            return ApothSpawnerTile.this;
+        public Either<BlockEntity, Entity> getOwner() {
+            return Either.left(ApothSpawnerTile.this);
         }
 
         protected boolean isActivated(Level level, BlockPos pos) {
@@ -145,7 +136,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
             }
 
             this.spawnPotentials.getRandom(pLevel.random).ifPresent(potential -> {
-                this.setNextSpawnData(pLevel, pPos, potential.getData());
+                this.setNextSpawnData(pLevel, pPos, potential.data());
             });
             this.broadcastEvent(pLevel, pPos, 1);
         }
@@ -200,7 +191,7 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
                         double x = size >= 1 ? posList.getDouble(0) : pPos.getX() + (rand.nextDouble() - rand.nextDouble()) * this.spawnRange + 0.5D;
                         double y = size >= 2 ? posList.getDouble(1) : (double) (pPos.getY() + rand.nextInt(3) - 1);
                         double z = size >= 3 ? posList.getDouble(2) : pPos.getZ() + (rand.nextDouble() - rand.nextDouble()) * this.spawnRange + 0.5D;
-                        if (level.noCollision(entityType.getAABB(x, y, z))) {
+                        if (level.noCollision(entityType.getSpawnAABB(x, y, z))) {
                             BlockPos blockpos = BlockPos.containing(x, y, z);
 
                             // LOGIC CHANGE : Ability to ignore conditions set in the spawner and by the entity.
@@ -249,7 +240,9 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
                                     mob.setBaby(true);
                                 }
 
-                                if (this.getStatValue(SpawnerStats.SILENT)) selfOrPassenger.setSilent(true);
+                                if (this.getStatValue(SpawnerStats.SILENT)) {
+                                    selfOrPassenger.setSilent(true);
+                                }
 
                                 if (this.getStatValue(SpawnerStats.INITIAL_HEALTH) != 1 && selfOrPassenger instanceof LivingEntity living) {
                                     living.setHealth(living.getHealth() * this.getStatValue(SpawnerStats.INITIAL_HEALTH));
@@ -270,11 +263,12 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
                                     continue;
                                 }
 
-                                // Forge: Patch in FinalizeSpawn for spawners so it may be fired unconditionally, instead of only when vanilla normally would trigger it.
-                                var event = EventHooks.onFinalizeSpawnSpawner(mob, useLiar ? liar : level, level.getCurrentDifficultyAt(entity.blockPosition()), null, tag, this);
-                                if (event != null && spawnData.getEntityToSpawn().size() == 1 && spawnData.getEntityToSpawn().contains("id", 8)) {
-                                    ((Mob) entity).finalizeSpawn(useLiar ? liar : level, event.getDifficulty(), event.getSpawnType(), event.getSpawnData(), event.getSpawnTag());
-                                }
+                                boolean shouldFinalize = spawnData.getEntityToSpawn().size() == 1 && spawnData.getEntityToSpawn().contains(Entity.ID_TAG, 8);
+                                // Neo: Patch in FinalizeSpawn for spawners so it may be fired unconditionally, instead of only when vanilla would normally call it.
+                                // The local flag1 is the conditions under which the spawner will normally call Mob#finalizeSpawn.
+                                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawnSpawner(mob, useLiar ? liar : level, level.getCurrentDifficultyAt(entity.blockPosition()), MobSpawnType.SPAWNER, null, this, shouldFinalize);
+
+                                spawnData.getEquipment().ifPresent(mob::equip);
                             }
 
                             if (!level.tryAddFreshEntityWithPassengers(entity)) {
@@ -300,14 +294,15 @@ public class ApothSpawnerTile extends SpawnerBlockEntity {
         }
 
         public boolean checkSpawnPositionSpawner(Mob mob, ServerLevelAccessor level, MobSpawnType spawnType, SpawnData spawnData, BaseSpawner spawner) {
-            var event = new PositionCheck(mob, level, spawnType, null);
+            var event = new PositionCheck(mob, level, spawnType, spawner);
             NeoForge.EVENT_BUS.post(event);
-            if (event.getResult() == Result.DEFAULT) {
-                return this.getStatValue(SpawnerStats.IGNORE_CONDITIONS)
-                    || spawnData.getCustomSpawnRules().isPresent()
-                    || mob.checkSpawnRules(level, MobSpawnType.SPAWNER) && mob.checkSpawnObstruction(level);
+            if (event.getResult() == PositionCheck.Result.DEFAULT) {
+                return mob.checkSpawnObstruction(level) &&
+                    (this.getStatValue(SpawnerStats.IGNORE_CONDITIONS)
+                        || spawnData.getCustomSpawnRules().isPresent()
+                        || mob.checkSpawnRules(level, MobSpawnType.SPAWNER));
             }
-            return event.getResult() == Result.ALLOW;
+            return event.getResult() == PositionCheck.Result.SUCCEED;
         }
 
         /**

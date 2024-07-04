@@ -2,8 +2,8 @@ package dev.shadowsoffire.apothic_spawners.block;
 
 import dev.shadowsoffire.apothic_spawners.ApothicSpawners;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -11,6 +11,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.Block;
 
 public class ApothSpawnerItem extends BlockItem {
@@ -26,12 +27,12 @@ public class ApothSpawnerItem extends BlockItem {
 
     @Override
     public Component getName(ItemStack stack) {
-        if (stack.hasTag() && stack.getTag().contains("BlockEntityTag")) {
-            CompoundTag tag = stack.getTag().getCompound("BlockEntityTag");
-            if (tag.contains("SpawnData")) {
+        if (stack.has(DataComponents.BLOCK_ENTITY_DATA)) {
+            CustomData data = stack.get(DataComponents.BLOCK_ENTITY_DATA);
+            if (data.contains("SpawnData")) {
                 try {
-                    String name = tag.getCompound("SpawnData").getCompound("entity").getString("id");
-                    EntityType<?> t = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(name));
+                    String name = data.copyTag().getCompound("SpawnData").getCompound("entity").getString("id");
+                    EntityType<?> t = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.tryParse(name));
                     if (t == null || t == EntityType.PIG && !"minecraft:pig".equals(name)) {
                         return super.getName(stack);
                     }

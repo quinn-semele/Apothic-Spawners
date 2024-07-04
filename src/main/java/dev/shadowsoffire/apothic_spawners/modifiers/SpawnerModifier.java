@@ -7,18 +7,19 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import dev.shadowsoffire.apothic_spawners.ASObjects;
 import dev.shadowsoffire.apothic_spawners.block.ApothSpawnerTile;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.ExtraCodecs;
-import net.minecraft.world.Container;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
@@ -28,13 +29,13 @@ import net.minecraft.world.level.Level;
  *
  * @author Shadows
  */
-public class SpawnerModifier implements Recipe<Container> {
+public class SpawnerModifier implements Recipe<RecipeInput> {
 
-    public static final Codec<SpawnerModifier> CODEC = RecordCodecBuilder.create(inst -> inst
+    public static final MapCodec<SpawnerModifier> CODEC = RecordCodecBuilder.mapCodec(inst -> inst
         .group(
             Ingredient.CODEC_NONEMPTY.fieldOf("mainhand").forGetter(SpawnerModifier::getMainhandInput),
-            ExtraCodecs.strictOptionalField(Ingredient.CODEC_NONEMPTY, "offhand", Ingredient.EMPTY).forGetter(SpawnerModifier::getOffhandInput),
-            ExtraCodecs.strictOptionalField(Codec.BOOL, "consumes_offhand", false).forGetter(SpawnerModifier::consumesOffhand),
+            Ingredient.CODEC.optionalFieldOf("offhand", Ingredient.EMPTY).forGetter(SpawnerModifier::getOffhandInput),
+            Codec.BOOL.optionalFieldOf("consumes_offhand", false).forGetter(SpawnerModifier::consumesOffhand),
             StatModifier.CODEC.listOf().fieldOf("stat_changes").forGetter(SpawnerModifier::getStatModifiers))
         .apply(inst, SpawnerModifier::new));
 
@@ -98,13 +99,13 @@ public class SpawnerModifier implements Recipe<Container> {
 
     @Override
     @Deprecated
-    public boolean matches(Container pContainer, Level pLevel) {
+    public boolean matches(RecipeInput pContainer, Level pLevel) {
         return false;
     }
 
     @Override
     @Deprecated
-    public ItemStack assemble(Container pContainer, RegistryAccess regs) {
+    public ItemStack assemble(RecipeInput pContainer, HolderLookup.Provider regs) {
         return ItemStack.EMPTY;
     }
 
@@ -116,7 +117,7 @@ public class SpawnerModifier implements Recipe<Container> {
 
     @Override
     @Deprecated
-    public ItemStack getResultItem(RegistryAccess regs) {
+    public ItemStack getResultItem(HolderLookup.Provider regs) {
         return ItemStack.EMPTY;
     }
 
@@ -143,16 +144,22 @@ public class SpawnerModifier implements Recipe<Container> {
 
     public static class Serializer implements RecipeSerializer<SpawnerModifier> {
 
+        StreamCodec<RegistryFriendlyByteBuf, SpawnerModifier> streamCodec = StreamCodec.of(Serializer::write, Serializer::read);
+
         @Override
-        public Codec<SpawnerModifier> codec() {
+        public MapCodec<SpawnerModifier> codec() {
             return CODEC;
         }
 
         @Override
+        public StreamCodec<RegistryFriendlyByteBuf, SpawnerModifier> streamCodec() {
+            return streamCodec;
+        }
+
         @SuppressWarnings({ "rawtypes", "unchecked" })
-        public SpawnerModifier fromNetwork(FriendlyByteBuf buf) {
-            Ingredient mainhand = Ingredient.fromNetwork(buf);
-            Ingredient offhand = buf.readBoolean() ? Ingredient.fromNetwork(buf) : Ingredient.EMPTY;
+        public static SpawnerModifier read(RegistryFriendlyByteBuf buf) {
+            Ingredient mainhand = Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
+            Ingredient offhand = Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
             boolean consumesOffhand = buf.readBoolean();
             List<StatModifier<?>> statChanges = new ArrayList<>();
             int size = buf.readByte();
@@ -162,11 +169,9 @@ public class SpawnerModifier implements Recipe<Container> {
             return new SpawnerModifier(mainhand, offhand, consumesOffhand, statChanges);
         }
 
-        @Override
-        public void toNetwork(FriendlyByteBuf buf, SpawnerModifier recipe) {
-            recipe.mainHand.toNetwork(buf);
-            buf.writeBoolean(recipe.offHand != Ingredient.EMPTY);
-            if (recipe.offHand != Ingredient.EMPTY) recipe.offHand.toNetwork(buf);
+        public static void write(RegistryFriendlyByteBuf buf, SpawnerModifier recipe) {
+            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.mainHand);
+            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.offHand);
             buf.writeBoolean(recipe.consumesOffhand);
             buf.writeByte(recipe.statChanges.size());
             recipe.statChanges.forEach(m -> m.write(buf));

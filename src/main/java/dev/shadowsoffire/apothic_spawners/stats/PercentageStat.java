@@ -6,7 +6,7 @@ import com.mojang.serialization.Codec;
 
 import dev.shadowsoffire.apothic_spawners.block.ApothSpawnerTile;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 public class PercentageStat extends CustomStat<Float> {
 
@@ -33,7 +33,7 @@ public class PercentageStat extends CustomStat<Float> {
 
     @Override
     public String formatValue(Float value) {
-        return ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100) + "%";
+        return ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100) + "%";
     }
 
     private Float clamp(Float value, Optional<Float> min, Optional<Float> max) {

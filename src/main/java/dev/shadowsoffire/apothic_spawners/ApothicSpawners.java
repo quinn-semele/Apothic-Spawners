@@ -48,7 +48,7 @@ public class ApothicSpawners {
     }
 
     public static ResourceLocation loc(String path) {
-        return new ResourceLocation(MODID, path);
+        return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 
 }

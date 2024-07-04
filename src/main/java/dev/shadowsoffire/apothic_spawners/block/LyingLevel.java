@@ -2,7 +2,6 @@ package dev.shadowsoffire.apothic_spawners.block;
 
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,7 +18,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.block.Block;
@@ -28,7 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkSource;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -42,7 +41,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.ticks.LevelTickAccess;
 
-public class LyingLevel implements WorldGenLevel {
+public class LyingLevel implements ServerLevelAccessor {
 
     protected final ServerLevel wrapped;
     protected int fakeLightLevel;
@@ -108,11 +107,6 @@ public class LyingLevel implements WorldGenLevel {
     @Override
     public void levelEvent(Player pPlayer, int pType, BlockPos pPos, int pData) {
         this.wrapped.levelEvent(pPlayer, pType, pPos, pData);
-    }
-
-    @Override
-    public void gameEvent(Entity pEntity, GameEvent pEvent, BlockPos pPos) {
-        this.wrapped.gameEvent(pEntity, pEvent, pPos);
     }
 
     @Override
@@ -246,28 +240,8 @@ public class LyingLevel implements WorldGenLevel {
     }
 
     @Override
-    public long getSeed() {
-        return this.wrapped.getSeed();
-    }
-
-    @Override
-    public void gameEvent(GameEvent pEvent, Vec3 pPosition, Context pContext) {
-        this.wrapped.gameEvent(pEvent, pPosition, pContext);
-    }
-
-    @Override
     public FeatureFlagSet enabledFeatures() {
         return this.wrapped.enabledFeatures();
-    }
-
-    @Override
-    public boolean ensureCanWrite(BlockPos pPos) {
-        return this.wrapped.ensureCanWrite(pPos);
-    }
-
-    @Override
-    public void setCurrentlyGenerating(Supplier<String> pCurrentlyGenerating) {
-        this.wrapped.setCurrentlyGenerating(pCurrentlyGenerating);
     }
 
     @Override
@@ -283,6 +257,11 @@ public class LyingLevel implements WorldGenLevel {
     @Override
     public boolean addFreshEntity(Entity pEntity) {
         return this.wrapped.addFreshEntity(pEntity);
+    }
+
+    @Override
+    public void gameEvent(Holder<GameEvent> gameEvent, Vec3 pos, Context context) {
+        this.wrapped.gameEvent(gameEvent, pos, context);
     }
 
 }

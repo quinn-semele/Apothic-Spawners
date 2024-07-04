@@ -10,6 +10,9 @@ import dev.shadowsoffire.placebo.network.PayloadProvider;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -36,65 +39,72 @@ public class ASConfig {
 
         bannedMobs.clear();
         String[] bans = config.getStringList("Banned Mobs", "spawn_eggs", DEFAULT_BANNED_MOBS, "A list of entity registry names that cannot be applied to spawners via egg.\nSynced.");
+
         for (String s : bans)
             try {
-                bannedMobs.add(new ResourceLocation(s));
+                bannedMobs.add(ResourceLocation.parse(s));
             }
             catch (ResourceLocationException ex) {
                 ApothicSpawners.LOGGER.error("Invalid entry {} detected in the spawner banned mobs list.", s);
                 ex.printStackTrace();
             }
-        if (config.hasChanged()) config.save();
+
+        if (config.hasChanged()) {
+            config.save();
+        }
     }
 
     public static record ConfigPayload(int spawnerSilkLevel, float capturingDropChance, Set<ResourceLocation> bannedMobs) implements CustomPacketPayload {
 
-        public static final ResourceLocation ID = ApothicSpawners.loc("config");
+        public static final Type<ConfigPayload> TYPE = new Type<>(ApothicSpawners.loc("config"));
+
+        public static final StreamCodec<FriendlyByteBuf, ConfigPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, ConfigPayload::spawnerSilkLevel,
+            ByteBufCodecs.FLOAT, ConfigPayload::capturingDropChance,
+            ByteBufCodecs.collection(HashSet::new, ResourceLocation.STREAM_CODEC), ConfigPayload::bannedMobs,
+            ConfigPayload::new);
 
         public ConfigPayload() {
             this(ASConfig.spawnerSilkLevel, ASConfig.capturingDropChance, ASConfig.bannedMobs);
         }
 
         @Override
-        public void write(FriendlyByteBuf buf) {
-            buf.writeByte(this.spawnerSilkLevel);
-            buf.writeFloat(this.capturingDropChance);
-            buf.writeCollection(this.bannedMobs, FriendlyByteBuf::writeResourceLocation);
+        public Type<ConfigPayload> type() {
+            return TYPE;
         }
 
-        @Override
-        public ResourceLocation id() {
-            return ID;
-        }
-
-        public static class Provider implements PayloadProvider<ConfigPayload, IPayloadContext> {
+        public static class Provider implements PayloadProvider<ConfigPayload> {
 
             @Override
-            public ResourceLocation id() {
-                return ID;
+            public Type<ConfigPayload> getType() {
+                return TYPE;
             }
 
             @Override
-            public ConfigPayload read(FriendlyByteBuf buf) {
-                return new ConfigPayload(buf.readByte(), buf.readFloat(), buf.readCollection(HashSet::new, FriendlyByteBuf::readResourceLocation));
+            public StreamCodec<? super RegistryFriendlyByteBuf, ConfigPayload> getCodec() {
+                return CODEC;
             }
 
             @Override
             public void handle(ConfigPayload msg, IPayloadContext ctx) {
-                ctx.workHandler().execute(() -> {
-                    ASConfig.spawnerSilkLevel = msg.spawnerSilkLevel;
-                    ASConfig.bannedMobs = msg.bannedMobs;
-                });
+                ASConfig.spawnerSilkLevel = msg.spawnerSilkLevel;
+                ASConfig.capturingDropChance = msg.capturingDropChance;
+                ASConfig.bannedMobs = msg.bannedMobs;
             }
 
             @Override
             public List<ConnectionProtocol> getSupportedProtocols() {
-                return List.of(ConnectionProtocol.CONFIGURATION, ConnectionProtocol.PLAY);
+                return List.of(ConnectionProtocol.PLAY);
             }
 
             @Override
             public Optional<PacketFlow> getFlow() {
                 return Optional.of(PacketFlow.CLIENTBOUND);
+            }
+
+            @Override
+            public String getVersion() {
+                return "1";
             }
 
         }
