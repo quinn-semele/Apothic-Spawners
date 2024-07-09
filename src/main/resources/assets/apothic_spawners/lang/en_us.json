@@ -106,5 +106,7 @@
     "advancements.apothic_spawners.ultimate_spawner": "The Ultimate Spawner",
     "advancements.apothic_spawners.ultimate_spawner.desc": "Create a spawner with minimal delays that has redstone control, no AI, ignores spawn conditions, and ignores players.",
 
-    "enchantment.level.0": "0"
+    "enchantment.level.0": "0",
+
+    "emi.category.apothic_spawners.spawner": "Spawner Modification"
 }

@@ -84,7 +84,7 @@ public class SpawnerCategory implements IRecipeCategory<SpawnerModifier> {
 
         Screen scn = Minecraft.getInstance().screen;
         Font font = Minecraft.getInstance().font;
-        if (scn == null) return; // We need this to render tooltips, bail if its not there.
+        if (scn == null) return; // We need this to render tooltips, bail if it's not there.
         if (mouseX >= -1 && mouseX < 9 && mouseY >= 13 && mouseY < 13 + 12) {
             gfx.blit(TEXTURES, -1, 13, 0, 0, 75, 10, 12, 256, 256);
             gfx.renderComponentTooltip(font, Arrays.asList(Component.translatable("misc.apothic_spawners.mainhand")), (int) mouseX, (int) mouseY);
