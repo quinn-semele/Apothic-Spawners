@@ -1,3 +1,7 @@
+## 1.0.1
+* Fixed Capturing not being available in the Enchanting Table.
+* TheWinABagel: Added EMI compat.
+
 ## 1.0.0
 * Modid changed to `apothic_spawners` from `apotheosis`.
 * Spawner Stats are now namespaced.
