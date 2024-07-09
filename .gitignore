@@ -22,3 +22,4 @@ eclipse
 runs
 logs
 .factorypath
+/.apt_generated/
