@@ -1,6 +1,13 @@
 package dev.shadowsoffire.apothic_spawners.compat;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import com.mojang.blaze3d.vertex.PoseStack;
+
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
 import dev.emi.emi.api.stack.EmiIngredient;
@@ -21,11 +28,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Blocks;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class SpawnerEMIRecipe implements EmiRecipe {
     private static final ResourceLocation TEXTURES = ApothicSpawners.loc("textures/gui/spawner_jei.png");
@@ -33,6 +35,7 @@ public class SpawnerEMIRecipe implements EmiRecipe {
     private final ResourceLocation id;
     private final EmiIngredient mainHand, offHand;
     private final SpawnerModifier recipe;
+
     public SpawnerEMIRecipe(SpawnerModifier recipe, ResourceLocation id) {
         this.recipe = recipe;
         this.mainHand = EmiIngredient.of(recipe.getMainhandInput());
@@ -47,17 +50,17 @@ public class SpawnerEMIRecipe implements EmiRecipe {
 
     @Override
     public @Nullable ResourceLocation getId() {
-        return id;
+        return this.id;
     }
 
     @Override
     public List<EmiIngredient> getInputs() {
-        return List.of(mainHand, offHand);
+        return List.of(this.mainHand, this.offHand);
     }
 
     @Override
     public List<EmiIngredient> getCatalysts() {
-        return List.of(EmiStack.of(Blocks.SPAWNER), mainHand, offHand);
+        return List.of(EmiStack.of(Blocks.SPAWNER), this.mainHand, this.offHand);
     }
 
     @Override
@@ -81,14 +84,15 @@ public class SpawnerEMIRecipe implements EmiRecipe {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void addWidgets(WidgetHolder widgets) {
         widgets.addTexture(TEXTURES, 0, 0, 169, 75, 0, 0);
-        if (recipe.getOffhandInput() == Ingredient.EMPTY) {
+        if (this.recipe.getOffhandInput() == Ingredient.EMPTY) {
             widgets.addTexture(TEXTURES, 1, 32, 28, 34, 0, 88);
         }
 
-        widgets.addDrawable(0,0,169,75, (gfx, mouseX, mouseY, delta) -> {
-            if (recipe.getOffhandInput() == Ingredient.EMPTY) {
+        widgets.addDrawable(0, 0, 169, 75, (gfx, mouseX, mouseY, delta) -> {
+            if (this.recipe.getOffhandInput() == Ingredient.EMPTY) {
                 gfx.blit(TEXTURES, 1, 31, 0, 0, 88, 28, 34, 256, 256);
             }
 
@@ -99,10 +103,10 @@ public class SpawnerEMIRecipe implements EmiRecipe {
                 gfx.blit(TEXTURES, -1, 13, 0, 0, 75, 10, 12, 256, 256);
                 gfx.renderComponentTooltip(font, Arrays.asList(Component.translatable("misc.apothic_spawners.mainhand")), mouseX, mouseY);
             }
-            else if (mouseX >= -1 && mouseX < 9 && mouseY >= 50 && mouseY < 50 + 12 && recipe.getOffhandInput() != Ingredient.EMPTY) {
+            else if (mouseX >= -1 && mouseX < 9 && mouseY >= 50 && mouseY < 50 + 12 && this.recipe.getOffhandInput() != Ingredient.EMPTY) {
                 gfx.blit(TEXTURES, -1, 50, 0, 0, 75, 10, 12, 256, 256);
                 gfx.renderComponentTooltip(font, Arrays.asList(Component.translatable("misc.apothic_spawners.offhand"), Component.translatable("misc.apothic_spawners.not_consumed").withStyle(ChatFormatting.GRAY)), mouseX,
-                        mouseY);
+                    mouseY);
             }
             else if (mouseX >= 33 && mouseX < 33 + 16 && mouseY >= 30 && mouseY < 30 + 16) {
                 gfx.renderComponentTooltip(font, Arrays.asList(Component.translatable("misc.apothic_spawners.rclick_spawner")), mouseX, mouseY);
@@ -114,9 +118,9 @@ public class SpawnerEMIRecipe implements EmiRecipe {
             gfx.renderFakeItem(new ItemStack(Items.SPAWNER), 31, 29);
             mvStack.popPose();
 
-            int top = 75 / 2 - recipe.getStatModifiers().size() * (font.lineHeight + 2) / 2 + 2;
+            int top = 75 / 2 - this.recipe.getStatModifiers().size() * (font.lineHeight + 2) / 2 + 2;
             int left = 168;
-            for (StatModifier<?> s : recipe.getStatModifiers()) {
+            for (StatModifier<?> s : this.recipe.getStatModifiers()) {
                 String value = s.getFormattedValue();
                 if ("true".equals(value)) value = "+";
                 else if ("false".equals(value)) value = "-";
@@ -145,9 +149,9 @@ public class SpawnerEMIRecipe implements EmiRecipe {
                 top += font.lineHeight + 2;
             }
         });
-        //Note: the coordinates for these are 1 fewer than the jei plugin
-        widgets.addSlot(mainHand, 10, 10).drawBack(false).recipeContext(this);
-        if (!offHand.isEmpty()) widgets.addSlot(offHand, 10, 47).drawBack(false);
+        // Note: the coordinates for these are 1 fewer than the jei plugin
+        widgets.addSlot(this.mainHand, 10, 10).drawBack(false).recipeContext(this);
+        if (!this.offHand.isEmpty()) widgets.addSlot(this.offHand, 10, 47).drawBack(false);
     }
 
     private static void renderComponentTooltip(Screen scn, GuiGraphics gfx, List<Component> list, int x, int y, int maxWidth, Font font) {

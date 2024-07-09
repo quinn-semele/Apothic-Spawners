@@ -106,7 +106,7 @@ dependencies {
     if(project.hasProperty('twilightFileId'))       implementation "curse.maven:the-twilight-forest-227639:${twilightFileId}"
     if(project.hasProperty('gatewaysVersion'))      implementation "dev.shadowsoffire:GatewaysToEternity:${mcVersion}-${gatewaysVersion}"
     if(project.hasProperty('attributeslibVersion')) implementation "dev.shadowsoffire:ApothicAttributes:${mcVersion}-${attributeslibVersion}"
-    if(project.hasProperty('emiVersion'))           implementation "dev.emi:emi-neoforge:${emiVersion}+${mcVersion}"
+    if(project.hasProperty('emiVersion'))           compileOnly    "dev.emi:emi-neoforge:${emiVersion}+${mcVersion}:api"
 }
 
 tasks.named('processResources', ProcessResources).configure {

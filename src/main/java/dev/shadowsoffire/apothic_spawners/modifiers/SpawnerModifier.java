@@ -153,7 +153,7 @@ public class SpawnerModifier implements Recipe<RecipeInput> {
 
         @Override
         public StreamCodec<RegistryFriendlyByteBuf, SpawnerModifier> streamCodec() {
-            return streamCodec;
+            return this.streamCodec;
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })

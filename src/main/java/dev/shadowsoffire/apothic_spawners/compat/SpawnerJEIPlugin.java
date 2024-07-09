@@ -30,7 +30,8 @@ import net.neoforged.fml.ModList;
 
 @JeiPlugin
 public class SpawnerJEIPlugin implements IModPlugin {
-    private static final boolean IS_EMI_LOADED = ModList.get().isLoaded("emi"); //Prevents potential double plugin loading issues
+    private static final boolean IS_EMI_LOADED = ModList.get().isLoaded("emi"); // Prevents potential double plugin loading issues
+
     @Override
     public void registerRecipes(IRecipeRegistration reg) {
         if (IS_EMI_LOADED) return;
