@@ -22,7 +22,7 @@ public class ASObjects {
 
     public static final Supplier<SpawnerModifier.Serializer> SPAWNER_MODIFIER_SERIALIZER = HELPER.recipeSerializer("spawner_modifier", () -> SpawnerModifier.SERIALIZER);
 
-    public static final Supplier<DataComponentType<Unit>> CAPTURING = HELPER.enchantmentEffect("capturing", builder -> builder.persistent(Unit.CODEC));
+    public static final DataComponentType<Unit> CAPTURING = HELPER.enchantmentEffect("capturing", builder -> builder.persistent(Unit.CODEC));
 
     public static final Supplier<ModifierTrigger> MODIFIER_TRIGGER = HELPER.custom("spawner_modifier", Registries.TRIGGER_TYPE, ModifierTrigger::new);
 

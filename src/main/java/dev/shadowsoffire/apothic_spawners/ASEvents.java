@@ -56,7 +56,7 @@ public class ASEvents {
         LivingEntity killed = e.getEntity();
 
         if (killer instanceof LivingEntity living) {
-            Pair<Unit, Integer> level = EnchantmentHelper.getHighestLevel(living.getWeaponItem(), ASObjects.CAPTURING.get());
+            Pair<Unit, Integer> level = EnchantmentHelper.getHighestLevel(living.getWeaponItem(), ASObjects.CAPTURING);
             if (level == null || ASConfig.bannedMobs.contains(EntityType.getKey(killed.getType()))) {
                 return;
             }
