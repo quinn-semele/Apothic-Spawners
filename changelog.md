@@ -1,3 +1,6 @@
+## 1.0.2
+* Updated to Placebo 9.3.5.
+
 ## 1.0.1
 * Fixed Capturing not being available in the Enchanting Table.
 * TheWinABagel: Added EMI compat.
